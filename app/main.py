@@ -1,6 +1,7 @@
 import sys
 import os
 import zlib
+import hashlib
 
 
 def main():
@@ -19,6 +20,19 @@ def main():
                 raw = zlib.decompress(f.read())
                 _, content = raw.split(b"\0", maxsplit=1)
                 print(content.decode("utf-8"), end="")
+    elif command == "hash-object":
+        if sys.argv[2] == "-w":
+            file_name = sys.argv[3]
+            with open(file_name, "rb") as f:
+                file_content = f.read()
+            header = f"blob {len(file_content)}\x00"
+            store = header.encode("ascii") + file_content
+            sha = hashlib.sha1(store).hexdigest()
+            git_path = os.path.join(os.getcwd(), ".git/objects")
+            os.mkdir(os.path.join(git_path, sha[0:2]))
+            with open(os.path.join(git_path, sha[0:2], sha[2:]), "wb") as f:
+                f.write(zlib.compress(store))
+            print(sha, end="")
     else:
         raise RuntimeError(f"Unknown command #{command}")
 
